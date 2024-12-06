@@ -1,0 +1,77 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+
+
+
+.full-background {
+    background-image: url("/nikebg.jpg"); /* Replace with your image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+
+  .font-custom {
+    color: #ffffff; /* Change to your preferred color */
+  }
+  
+  .centered-text {
+    color: #ff0000; /* Example: Sea Green */
+    font-weight: bold;
+  }
+  
+
+  /* Make inputs and button larger */
+.form-control-lg {
+    font-size: 1.5rem; /* Larger text */
+    padding: 1.2rem; /* Larger padding */
+  }
+  
+  .btn-lg {
+    font-size: 1.5rem;
+    padding: 1rem 2rem;
+  }
+
+
+
+  /* Navbar Styles */
+.navbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10000;
+  font-size: 20px;
+}
+
+.navbar-brand {
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 4em;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgb(0, 0, 0);
+  font-family: 'Poppins', sans-serif; /* Apply Poppins to navbar brand */
+}
+
+.navbar-brand:hover {
+  color: #ffff02;
+}
+
+.nav-link-hover {
+  text-decoration: none;
+  padding: 6px 15px;
+  color: #ffff02;
+  border-radius: 50px;
+  background-color: transparent; /* Keep background color static */
+  font-family: "Poppins", sans-serif; /* Apply Roboto to nav links */
+}
+
+
+
+  
