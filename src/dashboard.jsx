@@ -1,44 +1,51 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.css';
-
+import './Dashboard.css';
 import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
+import Form from 'react-bootstrap/Form';
+import Table from 'react-bootstrap/Table';
 import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+
+const API_ENDPOINT = 'https://adet-cfbr.onrender.com/api'; // Replace with your actual API endpoint
 
 function Dashboard() {
   const [user, setUser] = useState(null);
-  const [shoesImages, setShoesImages] = useState({
-    shoe1: "/shoe.jpg",  // Default shoe image 1
-    shoe2: "/shoe2.jpg",  // Default shoe image 2
-    shoe3: "/shoe3.jpg",  // Default shoe image 3
+  const [users, setUsers] = useState([]);  // Changed 'employees' to 'users'
+  const [form, setForm] = useState({
+    fullname: '',
+    username: '',
+    passwordx: '',
   });
-  const [apparelImages, setApparelImages] = useState({
-    apparel1: "/shirt.jpg",  // Default apparel image 1
-    apparel2: "/apparel.jpg",  // Default apparel image 2
-    apparel3: "/apparel2.jpg",  // Default apparel image 3
-  });
-  const [accessoryImages, setAccessoryImages] = useState({
-    accessory1: "/cap.jpg",  // Default accessory image 1
-    accessory2: "/access.jpg",  // Default accessory image 2
-    accessory3: "/access2.jpg",  // Default accessory image 3
-  });
-  const [descriptions, setDescriptions] = useState({
-    shoe1: "NIKE KILLSHOT 2 PREMIUM",
-    shoe2: "NIKE SHOX",
-    shoe3: "NIKE SB X STUSSY",
-    apparel1: "NIKE SB FLORAL SHIRT",
-    apparel2: "NIKE WORLD CHAMPION SHIRT",
-    apparel3: "NIKE X STUSSY SWEATPANTS",
-    accessory1: "NIKE DADHAT",
-    accessory2: "NIKE SKI MASK",
-    accessory3: "NIKE WATCH",
-  });
-  const [activeSection, setActiveSection] = useState("");  // Track active section
+  const [validationError, setValidationError] = useState({});
+  const [activeSection, setActiveSection] = useState('');
+  const [showModal, setShowModal] = useState(false); // Control modal visibility
   const navigate = useNavigate();
+
+  const [productData, setProductData] = useState({
+    shoes: {
+      shoe1: { img: "/shoe.jpg", description: "NIKE KILLSHOT 2 PREMIUM" },
+      shoe2: { img: "/shoe2.jpg", description: "NIKE SHOX" },
+      shoe3: { img: "/shoe3.jpg", description: "NIKE SB X STUSSY" },
+    },
+    apparel: {
+      apparel1: { img: "/shirt.jpg", description: "NIKE SB FLORAL SHIRT" },
+      apparel2: { img: "/apparel.jpg", description: "NIKE WORLD CHAMPION SHIRT" },
+      apparel3: { img: "/apparel2.jpg", description: "NIKE X STUSSY SWEATPANTS" },
+    },
+    accessories: {
+      accessory1: { img: "/cap.jpg", description: "NIKE DADHAT" },
+      accessory2: { img: "/access.jpg", description: "NIKE SKI MASK" },
+      accessory3: { img: "/access2.jpg", description: "NIKE WATCH" },
+    },
+  });
 
   useEffect(() => {
     const fetchDecodedUserID = () => {
@@ -60,48 +67,99 @@ function Dashboard() {
     navigate('/login');
   };
 
-  // Set fixed size for all images
-  const imageStyle = {
-    width: '400px',   // Set the width of all images to 200px
-    height: 'auto',  // Set the height of all images to 200px
-    objectFit: 'cover', // Ensure images are cropped to fill the container
-    borderRadius: '10px',
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)', // Optional: for styling
+  // Fetch Users (formerly employees)
+  const fetchUsers = async () => {
+    try {
+      const { data } = await axios.get(`${API_ENDPOINT}/users`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
   };
 
-  // Larger font size for product names
-  const textStyle = {
-    marginTop: "10px",
-    color: "white", 
-    fontSize: "18px",  // Increase font size here
-    fontWeight: "bold",  // Optional: Make it bold
+  // Handle Create User
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API_ENDPOINT}/users`, form, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      Swal.fire('Success', 'User created successfully', 'success');
+      fetchUsers();
+      setShowModal(false); // Close modal after successful creation
+    } catch (error) {
+      if (error.response?.status === 422) {
+        setValidationError(error.response.data.errors);
+      } else {
+        Swal.fire('Error', error.response?.data?.message || 'An error occurred', 'error');
+      }
+    }
+  };
+
+  // Handle Update User
+  const handleUpdateUser = async (userId) => {
+    try {
+      const updatedUser = { ...form }; // Set the form values here
+      await axios.put(`${API_ENDPOINT}/users/${userId}`, updatedUser, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      Swal.fire('Success', 'User updated successfully', 'success');
+      fetchUsers();
+    } catch (error) {
+      Swal.fire('Error', error.response?.data?.message || 'An error occurred', 'error');
+    }
+  };
+
+  // Handle Delete User
+  const handleDeleteUser = async (userId) => {
+    try {
+      await axios.delete(`${API_ENDPOINT}/users/${userId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      Swal.fire('Success', 'User deleted successfully', 'success');
+      fetchUsers();
+    } catch (error) {
+      Swal.fire('Error', error.response?.data?.message || 'An error occurred', 'error');
+    }
+  };
+
+  // Handle Section Change
+  const handleSectionChange = (section) => {
+    setActiveSection(section);
+  };
+
+  // Handle Create User Modal Show
+  const handleShowModal = () => {
+    setForm({ fullname: '', username: '', passwordx: '' }); // Reset form on modal show
+    setShowModal(true);
+  };
+
+  // Handle Create User Modal Close
+  const handleCloseModal = () => {
+    setShowModal(false);
   };
 
   return (
     <>
       <Navbar bg="" expand="lg" variant="">
         <Container>
-          <Navbar.Brand 
-            href="/" 
-            onClick={() => setActiveSection('')}  // Reset active section when clicking the logo
-          >
+          <Navbar.Brand href="/" onClick={(e) => { e.preventDefault(); setActiveSection(''); }}>
             NIKE OUTLET.
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="navbar-nav" />
           <Navbar.Collapse id="navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link href="#Shoes" className="dark" onClick={() => setActiveSection('shoes')}>Shoes</Nav.Link>
-              <Nav.Link href="#Apparel" className="dark" onClick={() => setActiveSection('apparel')}>Apparel</Nav.Link>
-              <Nav.Link href="#Accessories" className="dark" onClick={() => setActiveSection('accessories')}>Accessories</Nav.Link>
+              <Nav.Link href="#Shoes" onClick={() => handleSectionChange('shoes')}>Shoes</Nav.Link>
+              <Nav.Link href="#Apparel" onClick={() => handleSectionChange('apparel')}>Apparel</Nav.Link>
+              <Nav.Link href="#Accessories" onClick={() => handleSectionChange('accessories')}>Accessories</Nav.Link>
             </Nav>
             <Nav className="ms-auto">
-              <NavDropdown
-                title={user ? user.username : 'Account'}
-                id="basic-nav-dropdown"
-                align="end"
-              >
+              <NavDropdown title={user ? user.username : 'Account'} id="basic-nav-dropdown" align="end">
                 <NavDropdown.Item href="/profile">Profile</NavDropdown.Item>
                 <NavDropdown.Item href="/settings">Settings</NavDropdown.Item>
+                <NavDropdown.Item href="#Users" onClick={() => handleSectionChange('users')}>Users</NavDropdown.Item>
                 <NavDropdown.Divider />
                 <NavDropdown.Item onClick={handleLogout}>Logout</NavDropdown.Item>
               </NavDropdown>
@@ -110,154 +168,132 @@ function Dashboard() {
         </Container>
       </Navbar>
 
-      {/* Add background styling */}
-      <div style={{
-        background: 'url("bgdashboard.jpg") no-repeat center center fixed',
-        backgroundSize: 'cover',
-        minHeight: '100vh',
-        padding: '20px',
-      }}>
+      <div className="dashboard-background">
         <Container>
-          {/* Conditionally render the Categories Section */}
           {activeSection === '' && (
-            <div style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: "20px",
-              padding: "20px",
-            }}>
-              <div className="category-item" onClick={() => setActiveSection('shoes')}>
-                <img src="/shoebg.jpg" alt="Shoes" style={imageStyle} />
-                <h4 style={{ color: "white" || 'black' }}>Shoes</h4> {/* Default color black */}
+            <div className="product-container">
+              <div className="category-item" onClick={() => handleSectionChange('shoes')}>
+                <img src="/shoebg.jpg" alt="Shoes" />
+                <h4>Shoes</h4>
               </div>
-              <div className="category-item" onClick={() => setActiveSection('apparel')}>
-                <img src="/shirt.jpg" alt="Apparel" style={imageStyle} />
-                <h4 style={{ color: "white" || 'black' }}>Apparel</h4> {/* Default color black */}
+              <div className="category-item" onClick={() => handleSectionChange('apparel')}>
+                <img src="/shirt.jpg" alt="Apparel" />
+                <h4>Apparel</h4>
               </div>
-              <div className="category-item" onClick={() => setActiveSection('accessories')}>
-                <img src="/cap.jpg" alt="Accessories" style={imageStyle} />
-                <h4 style={{ color: "white" || 'black' }}>Accessories</h4> {/* Default color black */}
+              <div className="category-item" onClick={() => handleSectionChange('accessories')}>
+                <img src="/cap.jpg" alt="Accessories" />
+                <h4>Accessories</h4>
               </div>
             </div>
           )}
 
-          {/* Conditionally render the Shoes Section */}
           {activeSection === 'shoes' && (
-            <div>
-              <h3 style={{ color: "white" || 'black' }}>Our Latest Shoes</h3> {/* Default color black */}
-              <div style={{ display: "flex", justifyContent: "center", gap: "20px", }}>
-                {/* Shoe 1 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={shoesImages.shoe1}
-                    alt="Shoe 1"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.shoe1}</p>  {/* Display shoe name below */}
+            <div className="product-container">
+              {Object.values(productData.shoes).map((shoe, index) => (
+                <div key={index} className="product-item">
+                  <img src={shoe.img} alt={shoe.description} />
+                  <p>{shoe.description}</p>
                 </div>
-
-                {/* Shoe 2 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={shoesImages.shoe2}
-                    alt="Shoe 2"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.shoe2}</p>  {/* Display shoe name below */}
-                </div>
-
-                {/* Shoe 3 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={shoesImages.shoe3}
-                    alt="Shoe 3"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.shoe3}</p>  {/* Display shoe name below */}
-                </div>
-              </div>
+              ))}
             </div>
           )}
 
-          {/* Conditionally render the Apparel Section */}
           {activeSection === 'apparel' && (
-            <div>
-              <h3 style={{ color: "white" || 'black' }}>Our Latest Apparel</h3> {/* Default color black */}
-              <div style={{ display: "flex", justifyContent: "center", gap: "20px" }}>
-                {/* Apparel 1 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={apparelImages.apparel1}
-                    alt="Apparel 1"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.apparel1}</p>  {/* Display apparel name below */}
+            <div className="product-container">
+              {Object.values(productData.apparel).map((apparel, index) => (
+                <div key={index} className="product-item">
+                  <img src={apparel.img} alt={apparel.description} />
+                  <p>{apparel.description}</p>
                 </div>
-
-                {/* Apparel 2 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={apparelImages.apparel2}
-                    alt="Apparel 2"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.apparel2}</p>  {/* Display apparel name below */}
-                </div>
-
-                {/* Apparel 3 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={apparelImages.apparel3}
-                    alt="Apparel 3"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.apparel3}</p>  {/* Display apparel name below */}
-                </div>
-              </div>
+              ))}
             </div>
           )}
 
-          {/* Conditionally render the Accessories Section */}
           {activeSection === 'accessories' && (
+            <div className="product-container">
+              {Object.values(productData.accessories).map((accessory, index) => (
+                <div key={index} className="product-item">
+                  <img src={accessory.img} alt={accessory.description} />
+                  <p>{accessory.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeSection === 'users' && (  // Changed 'employees' to 'users'
             <div>
-              <h3 style={{ color: "white" || 'black' }}>Our Latest Accessories</h3> {/* Default color black */}
-              <div style={{ display: "flex", justifyContent: "center", gap: "20px" }}>
-                {/* Accessory 1 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={accessoryImages.accessory1}
-                    alt="Accessory 1"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.accessory1}</p>  {/* Display accessory name below */}
-                </div>
-
-                {/* Accessory 2 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={accessoryImages.accessory2}
-                    alt="Accessory 2"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.accessory2}</p>  {/* Display accessory name below */}
-                </div>
-
-                {/* Accessory 3 */}
-                <div style={{ textAlign: "center" }}>
-                  <img
-                    src={accessoryImages.accessory3}
-                    alt="Accessory 3"
-                    style={imageStyle}
-                  />
-                  <p style={textStyle}>{descriptions.accessory3}</p>  {/* Display accessory name below */}
-                </div>
-              </div>
+              <h3 className="section-header">Users</h3>
+              <Button variant="success" className="mb-2" onClick={handleShowModal}>
+                Create User
+              </Button>
+              <Table striped bordered hover>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Fullname</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (  // Changed 'employees' to 'users'
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.username}</td>
+                      <td>{user.fullname}</td>
+                      <td>
+                        <Button variant="warning" size="sm" onClick={() => setForm(user)}>Update</Button>{' '}
+                        <Button variant="danger" size="sm" onClick={() => handleDeleteUser(user.id)}>Delete</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
             </div>
           )}
         </Container>
       </div>
+
+      {/* Create/Update User Modal */}
+      <Modal show={showModal} onHide={handleCloseModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>{form?.id ? 'Update User' : 'Create User'}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={form?.id ? (e) => { e.preventDefault(); handleUpdateUser(form.id); } : handleCreateUser}>
+            <Form.Group controlId="username">
+              <Form.Label>Username</Form.Label>
+              <Form.Control
+                type="text"
+                value={form?.username || ''}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <Form.Group controlId="fullname">
+              <Form.Label>Fullname</Form.Label>
+              <Form.Control
+                type="text"
+                value={form?.fullname || ''}
+                onChange={(e) => setForm({ ...form, fullname: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <Form.Group controlId="passwordx">
+              <Form.Label>Password</Form.Label>
+              <Form.Control
+                type="password"
+                value={form?.passwordx || ''}
+                onChange={(e) => setForm({ ...form, passwordx: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <Button variant="primary" type="submit" className="mt-3">
+              {form?.id ? 'Update' : 'Save'}
+            </Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </>
   );
 }
